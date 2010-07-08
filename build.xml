@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<project name="mbot" default="build">
+
+  <path id="lib.path">
+    <pathelement path="lib/"/>
+    <fileset dir="lib/" includes="*.jar"/>
+  </path>
+
+
+  <target name="clean" description="remove intermediate files">
+    <delete dir="classes"/>
+  </target>
+
+  <target name="clobber" depends="clean" description="remove all artifact files">
+    <delete file="mbot.jar"/>
+  </target>
+  
+  <target name="build" description="build the Java source code to class files">
+    <mkdir dir="classes"/>
+    <javac destdir="classes">
+      <classpath refid="lib.path"/>
+      <src>
+        <pathelement location="src/java"/> 
+      </src>
+    </javac>
+  </target>
+
+  <target name="jar" depends="build" description="create a Jar file for the lib">
+    <jar destfile="mbot.jar">
+      <fileset dir="classes" includes="**/*.class"/>
+      <manifest>
+        <attribute name="Main-Class" value="Main"/>
+      </manifest>
+    </jar>
+  </target>
+
+</project>
