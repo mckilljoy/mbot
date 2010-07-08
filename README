@@ -1,0 +1,1 @@
+Glue app that interfaces an Interactive Broker TWS instance to a Cassandra DB instance.
