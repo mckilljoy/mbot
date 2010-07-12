@@ -1,8 +1,7 @@
 
-import TestJavaClient.OldMain;
 import scc.*;
 
-public class Main extends TestJavaClient.OldMain 
+public class Main
 {
    
     public static void main (String args[])

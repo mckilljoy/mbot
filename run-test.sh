@@ -6,6 +6,7 @@ echo "Using jar file"
 
     java -cp \
 lib/scc.jar:\
+lib/ib.jar:\
 lib/apache-cassandra-0.6.2.jar:\
 lib/libthrift-r917130.jar:\
 lib/log4j-1.2.14.jar:\
@@ -19,6 +20,7 @@ echo "Using class files"
 
     java -cp \
 lib/scc.jar:\
+lib/ib.jar:\
 lib/apache-cassandra-0.6.2.jar:\
 lib/libthrift-r917130.jar:\
 lib/log4j-1.2.14.jar:\

@@ -1,7 +1,7 @@
 package mbot;
 
 // IB imports
-import com.ib.client.Contract;
+import samples.base.StkContract;
 import com.ib.client.EClientSocket;
 
 //
@@ -32,7 +32,7 @@ public class MktStkJob extends Job
     //
     // Contract object
     //
-    private Contract twsContract;
+    private StkContract twsContract;
 
     //
     // Generic ticks determine what kind of feed data we get.
@@ -63,7 +63,7 @@ public class MktStkJob extends Job
     public MktStkJob( int jobType,
                       EClientSocket twsClient,
                       int twsClientId,
-                      Contract twsContract,
+                      StkContract twsContract,
                       boolean twsSnapshotMktData )
     {
 

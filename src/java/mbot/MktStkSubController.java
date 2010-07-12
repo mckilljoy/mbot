@@ -4,6 +4,7 @@ import scc.*;
 
 // IB imports
 import com.ib.client.*;
+import samples.base.StkContract;
 
 // Thrift imports
 import org.apache.cassandra.thrift.*;
@@ -192,7 +193,8 @@ public class MktStkSubController extends SubController
 
         System.out.println("Tracking symbol " + symbol + " on clientId " + clientId);
 
-        Contract contract = createMktStkContract( symbol );
+        //Contract contract = createMktStkContract( symbol );
+        StkContract contract = new StkContract( symbol );
 
         Job job = new MktStkJob( MktStkJob.JOB_START_FEED,
                                  twsClient,
@@ -247,6 +249,7 @@ public class MktStkSubController extends SubController
 
     }
 
+    /*
     //
     // Create contracts
     //
@@ -273,7 +276,7 @@ public class MktStkSubController extends SubController
             contract.m_secIdType = new String();
             contract.m_secId = new String();
 
-            /*
+            
             // set order fields
             m_order.m_action = m_action.getText();
             m_order.m_totalQuantity = Integer.parseInt( m_totalQuantity.getText() );
@@ -303,7 +306,7 @@ public class MktStkSubController extends SubController
             m_marketDepthRows = Integer.parseInt( m_marketDepthRowTextField.getText() );
             m_genericTicks = m_genericTicksTextField.getText();
             m_snapshotMktData = m_snapshotMktDataTextField.isSelected();
-            */
+            
         }
         catch( Exception e )
         {
@@ -313,6 +316,7 @@ public class MktStkSubController extends SubController
         return contract;
 
     }
+    */
 
     //
     // EWrapper interface
