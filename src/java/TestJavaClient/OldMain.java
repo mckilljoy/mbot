@@ -4,6 +4,10 @@
  */
 package TestJavaClient;
 
+import scc.*;
+
+// Java imports
+
 import java.awt.Component;
 
 import javax.swing.JOptionPane;
@@ -13,8 +17,9 @@ import javax.swing.SwingUtilities;
 public class OldMain {
 
     // This method is called to start the application
-    public static void main (String args[]) {
+    public static void main ( SimpleCassandraClient scc ) {
         SampleFrame sampleFrame = new SampleFrame();
+        sampleFrame.cassandraClient = scc;
         sampleFrame.setVisible(true);
     }
 

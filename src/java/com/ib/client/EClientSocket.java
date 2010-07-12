@@ -215,10 +215,10 @@ public class EClientSocket {
 
         // check server version
         m_serverVersion = m_reader.readInt();
-        System.out.println("Server Version:" + m_serverVersion);
+        //System.out.println("Server Version:" + m_serverVersion);
         if ( m_serverVersion >= 20 ){
             m_TwsTime = m_reader.readStr();
-            System.out.println("TWS Time at connection:" + m_TwsTime);
+            //System.out.println("TWS Time at connection:" + m_TwsTime);
         }
         if( m_serverVersion < SERVER_VERSION) {
         	eDisconnect();

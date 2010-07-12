@@ -50,6 +50,8 @@ class SampleFrame extends JFrame implements EWrapper {
     public boolean  m_bIsFAAccount = false;
     
     private boolean m_disconnectInProgress = false;
+
+    public SimpleCassandraClient cassandraClient;
     
     SampleFrame() {
         JPanel scrollingWindowDisplayPanel = new JPanel( new GridLayout( 0, 1) );
@@ -610,8 +612,8 @@ class SampleFrame extends JFrame implements EWrapper {
     public void tickPrice( int tickerId, int field, double price, int canAutoExecute) {
         // received price tick
     	String msg = EWrapperMsgGenerator.tickPrice( tickerId, field, price, canAutoExecute);
-        String ts = new Long( SimpleCassandraClient.timestampMicros() ).toString();
-        SimpleCassandraClient.insert("MktStk", "TickPrice", "AAPL", "20100702", ts, msg.getBytes());
+        String ts = new Long( cassandraClient.timestampMicros() ).toString();
+        //cassandraClient.insert("MktStk", "TickPrice", "AAPL", "20100702", ts, msg.getBytes());
         m_tickers.add( "tickPrice " +  msg );
     }
 
@@ -624,24 +626,24 @@ class SampleFrame extends JFrame implements EWrapper {
     public void tickSize( int tickerId, int field, int size) {
         // received size tick
     	String msg = EWrapperMsgGenerator.tickSize( tickerId, field, size);
-        String ts = new Long( SimpleCassandraClient.timestampMicros() ).toString();
-        SimpleCassandraClient.insert("MktStk", "TickSize", "AAPL", "20100702", ts, msg.getBytes());
+        String ts = new Long( cassandraClient.timestampMicros() ).toString();
+        //cassandraClient.insert("MktStk", "TickSize", "AAPL", "20100702", ts, msg.getBytes());
         m_tickers.add( "tickSize " +  msg);
     }
 
     public void tickGeneric( int tickerId, int tickType, double value) {
         // received generic tick
     	String msg = EWrapperMsgGenerator.tickGeneric(tickerId, tickType, value);
-        String ts = new Long( SimpleCassandraClient.timestampMicros() ).toString();
-        SimpleCassandraClient.insert("MktStk", "TickGeneric", "AAPL", "20100702", ts, msg.getBytes());
+        String ts = new Long( cassandraClient.timestampMicros() ).toString();
+        //cassandraClient.insert("MktStk", "TickGeneric", "AAPL", "20100702", ts, msg.getBytes());
         m_tickers.add(  "tickGen " +  msg);
     }
 
     public void tickString( int tickerId, int tickType, String value) {
         // received String tick
     	String msg = EWrapperMsgGenerator.tickString(tickerId, tickType, value);
-        String ts = new Long( SimpleCassandraClient.timestampMicros() ).toString();
-        SimpleCassandraClient.insert("MktStk", "TickString", "AAPL", "20100702", ts, msg.getBytes());
+        String ts = new Long( cassandraClient.timestampMicros() ).toString();
+        //cassandraClient.insert("MktStk", "TickString", "AAPL", "20100702", ts, msg.getBytes());
         m_tickers.add( "tickString " +  msg);
     }
     

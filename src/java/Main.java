@@ -9,36 +9,39 @@ public class Main extends TestJavaClient.OldMain
     {
         System.out.println("Starting mbot");
 
-        String server = "localhost";
-        int port = 9160;
+        /*
+        SimpleCassandraClient scc = new SimpleCassandraClient();
 
-        if( SimpleCassandraClient.connect( "localhost", 9160 ) )
+        if( scc.connect( "localhost", 9160 ) )
         {
-            System.out.println("Connecting to Cassandra server at " + server + "/" + 9160);
+            System.out.println("Connecting to Cassandra server at localhost/9160");
         }
         else
         {
             System.out.println("Failed to connect to Cassandra server");
             return;
         }
-
+        */
 
         //SimpleCassandraClient.describe("Keyspace1");
 
         //System.out.println("Testing Cassandra connection");
         //test();
 
-        TestJavaClient.OldMain.main(args);
+        //String[] omArgs;
+        //omArgs[0] = scc;
+        //TestJavaClient.OldMain.main(args);
 
         //System.out.println("Disconnecting from Cassandra server");
         //SimpleCassandraClient.disconnect();
         
     }
     
-    public static void test() 
+    /*
+    public static void test( SimpleCassandraClient scc ) 
     {
 
-        if( SimpleCassandraClient.insert("Keyspace1", "Standard2", "aapl", "2010", "250.0".getBytes()) )
+        if( scc.insert("Keyspace1", "Standard2", "aapl", "2010", "250.0".getBytes()) )
         {
             System.out.println("Insert succeeded");
         }
@@ -47,7 +50,7 @@ public class Main extends TestJavaClient.OldMain
             System.out.println("Insert failed");
         }
 
-        if( SimpleCassandraClient.insert("Keyspace1", "Super1", "aapl", "12:00", "2010", "250.0".getBytes()) )
+        if( scc.insert("Keyspace1", "Super1", "aapl", "12:00", "2010", "250.0".getBytes()) )
         {
             System.out.println("Insert super succeeded");
         }
@@ -58,7 +61,7 @@ public class Main extends TestJavaClient.OldMain
 
         byte[] value;
 
-        if( (value = SimpleCassandraClient.get("Keyspace1", "Standard2", "aapl", "2010")) != null )
+        if( (value = scc.get("Keyspace1", "Standard2", "aapl", "2010")) != null )
         {
             System.out.println( new String(value) );
         }
@@ -67,7 +70,7 @@ public class Main extends TestJavaClient.OldMain
             System.out.println("Get failed");
         }
 
-        if( (value = SimpleCassandraClient.get("Keyspace1", "Super1", "aapl", "12:00", "2010")) != null )
+        if( (value = scc.get("Keyspace1", "Super1", "aapl", "12:00", "2010")) != null )
         {
             System.out.println( new String(value) );
         }
@@ -76,6 +79,7 @@ public class Main extends TestJavaClient.OldMain
             System.out.println("Get super failed");
         }
     }
+    */
  
     /*
     static public void inform( final Component parent, final String str)
