@@ -40,12 +40,13 @@ public abstract class Job implements Comparable<Job>, Runnable
     //
     // The actual job code will be defined here
     //
-    abstract void executeJob();
+    abstract public void executeJob() throws JobException;
 
     //
     // This allows for custom job cleanup if canceled
     //
-    void cancelJob()
+    public void cancelJob()
+        throws JobException
     {
         // nothing by default
     }
@@ -92,7 +93,8 @@ public abstract class Job implements Comparable<Job>, Runnable
             // Race condition where a cancelation (i.e. interrupt) can
             // come in before we even reach the try/catch block
             //
-            if (Thread.interrupted()) {
+            if( Thread.interrupted() )
+            {
                 throw new InterruptedException();
             }
 
@@ -104,13 +106,17 @@ public abstract class Job implements Comparable<Job>, Runnable
             jobStatus = JOB_STATUS_COMPLETE;
 
         }
-        catch (InterruptedException e)
+        catch( InterruptedException e )
         {
             //
             // End this job by simply returning
             //
             jobStatus = JOB_STATUS_CANCELED;
 
+        }
+        catch( JobException e )
+        {
+            System.out.println("Exception running job: " + e.getMessage() );
         }
 
         //

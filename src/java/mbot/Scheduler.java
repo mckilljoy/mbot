@@ -45,6 +45,17 @@ public class Scheduler implements Runnable
         completedQueue = new TreeSet<Job>();
     }
 
+    //
+    // Shutdown the subsystem
+    //
+    public void shutdown()
+    {
+        endEvaluatorThread();
+    }
+
+    //
+    // Start the evaluator thread
+    //
     public void startEvaluatorThread()
     {
         thread = new Thread(this);
@@ -52,21 +63,29 @@ public class Scheduler implements Runnable
         thread.start();
     }
 
-    public void endEvaluatorThread()
+    //
+    // Call this when our class is being closed
+    //
+    private void endEvaluatorThread()
     {
         thread.interrupt();
     }
 
     //
+    // Wake up the evaluator thread to see if there
+    // is anything to run right now
+    //
+    private void notifyEvaluatorThread()
+    {
+        notify();
+    }
+
+    //
     // Scheduled immediately
     //
-    public synchronized boolean scheduleNow( Job job )
+    public synchronized void scheduleNow( Job job )
+        throws SchedulerException
     {
-
-        if( thread == null || waitingQueue == null )
-        {
-            return false;
-        }
 
         //
         // Set the start time (to zero)
@@ -80,28 +99,22 @@ public class Scheduler implements Runnable
 
         if( result == false )
         {
-            return false;
+            throw new SchedulerException("Failed to add job to wait queue");
         }
 
         //
         // Notify the evaluator that something new is waiting
         //
-        notify();
+        notifyEvaluatorThread();
         
-        return true;
-
     }
 
     //
     // Schedule for a specific time
     //
-    public synchronized boolean scheduleAtTime( Job job, long startTime )
+    public synchronized void scheduleAtTime( Job job, long startTime )
+        throws SchedulerException
     {
-
-        if( thread == null || waitingQueue == null )
-        {
-            return false;
-        }
 
         //
         // Set the start time of the job
@@ -115,28 +128,21 @@ public class Scheduler implements Runnable
 
         if( result == false )
         {
-            return false;
+            throw new SchedulerException("Failed to add job to wait queue");
         }
 
         //
         // Notify the evaluator that something new is waiting
         //
-        notify();
-
-        return true;
-
+        notifyEvaluatorThread();
     }
 
     //
     // Run after a certain delta from now
     //
-    public synchronized boolean scheduleAtTimeDelta( Job job, long startTimeDelta )
+    public synchronized void scheduleAtTimeDelta( Job job, long startTimeDelta )
+        throws SchedulerException
     {
-
-        if( thread == null || waitingQueue == null )
-        {
-            return false;
-        }
 
         //
         // Get the current time
@@ -155,30 +161,20 @@ public class Scheduler implements Runnable
 
         if( result == false )
         {
-            return false;
+            throw new SchedulerException("Failed to add job to wait queue");
         }
 
         //
         // Notify the evaluator that something new is waiting
         //
-        notify();
+        notifyEvaluatorThread();
 
-        return true;
-
-    }
-
-    //
-    // Return the current time in MS
-    //
-    public long currentTime()
-    {
-        return System.currentTimeMillis();
     }
 
     //
     // run the job
     //
-    private synchronized boolean startJob( Job job )
+    private synchronized void startJob( Job job )
     {
 
         job.scheduler = this;
@@ -186,19 +182,12 @@ public class Scheduler implements Runnable
         //
         // Track the running job on the queue
         //
-        boolean result = runningQueue.add( job );
-
-        if( result == false )
-        {
-            return false;
-        }
+        runningQueue.add( job );
 
         //
         // The job itself will take care of spinning a thread up
         //
         job.start();
-
-        return true;
 
     }
 
@@ -293,6 +282,14 @@ public class Scheduler implements Runnable
             return;
         }
 
+    }
+
+    //
+    // Return the current time in MS
+    //
+    public long currentTime()
+    {
+        return System.currentTimeMillis();
     }
 
 }

@@ -1,13 +1,14 @@
 package mbot;
 
 // SCC imports
-import scc.*;
+//import scc.*;
 
 // IB imports
 import com.ib.client.*;
 
 // Java imports
 import java.util.Date;
+import java.util.LinkedList;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
@@ -17,8 +18,13 @@ import java.text.SimpleDateFormat;
 // various tasks to accomplish their goals. The actual scheduling
 // of jobs is most likely handled by a single (external) scheduler.
 //
-public abstract class Controller implements EWrapper
+public abstract class Controller
 {
+
+    //
+    // The parent system
+    //
+    //protected SystemController parent;
 
     //
     // Jobs may be queued to this scheduler object
@@ -26,16 +32,16 @@ public abstract class Controller implements EWrapper
     protected Scheduler scheduler;
 
     //
-    // This is the open connection to the cassandra instance
+    // Track all jobs we have scheduled
     //
-    protected SimpleCassandraClient cassandraClient;
+    protected LinkedList<Job> pendingJobs;
+
 
     //
-    // The IB API requires a unique client id for each datafeed
-    // These must be tracked by the controller to avoid collision
-    // A simple range should be good enough for now.
+    // This is cassandra subsystem
     //
-    protected EClientSocket twsClient;
+    protected CassandraSubsystem cassandraSubsystem;
+
 
     //
     // The controllers name can be used for locating metadata
@@ -52,17 +58,41 @@ public abstract class Controller implements EWrapper
     //
     protected String controlKeyspace = "Control";
 
-    //
-    // This returns a valid clientId for TWS requests
-    //
-    protected abstract int getNextValidTwsClientId();
 
     //
-    // Static convenience functions
+    // The IB API requires a unique client id for each datafeed
+    // These must be tracked by the controller to avoid collision
+    // A simple range should be good enough for now.
     //
+    protected TwsSubsystem twsSubsystem;
+
 
     //
-    // Current time in microseconds
+    // This is called by the scheduler when a job is complete
+    //
+    protected abstract void completionCallback( Job job );
+ 
+    //
+    // Convenience functions
+    //
+
+    public String getName()
+    {
+        return controllerName;
+    }
+
+    //
+    // Pretty print a date in Long MS form
+    //
+    protected static String convertTimeLongToDate( Long time )
+    {
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        Date date = new Date( time );
+        return dateFormat.format(date);
+    }
+
+    //
+    // Current time in microseconds -- does not have US resolution
     //
     protected static long getTimestampUS()
     {
@@ -71,7 +101,7 @@ public abstract class Controller implements EWrapper
 
     protected static String getTimestampStringUS()
     {
-        return new Long(System.currentTimeMillis() * 1000).toString();
+        return new Long( System.currentTimeMillis() * 1000 ).toString();
     }
 
     //
@@ -84,7 +114,20 @@ public abstract class Controller implements EWrapper
 
     protected static String getTimestampStringMS()
     {
-        return new Long(System.currentTimeMillis()).toString();
+        return new Long( System.currentTimeMillis() ).toString();
+    }
+
+    //
+    // Current time in seconds, calculated
+    //
+    protected static long getTimestampS()
+    {
+        return System.currentTimeMillis()/1000;
+    }
+
+    protected static String getTimestampStringS()
+    {
+        return new Long( System.currentTimeMillis() / 1000 ).toString();
     }
 
     //
@@ -97,6 +140,10 @@ public abstract class Controller implements EWrapper
         return dateFormat.format(date);
     }
 
+
+    //
+    // Thunk layer for convenience
+    //
     protected void thunk()
     {
         notImplemented();
@@ -121,6 +168,41 @@ public abstract class Controller implements EWrapper
     }
 
     //
+    // Callbacks for the TWS subsystem to use
+    //
+    //
+    // Main datafeed callbacks
+    //
+
+    public void callbackOptionVolume( String symbol, String tickType, Integer size ) { thunk(); }
+
+    public void callbackOptionOpenInterest( String symbol, String tickType, Integer size ) { thunk(); }
+
+    public void callbackOptionHistoricalVolatility( String symbol, String tickType, Double value ) { thunk(); }
+
+    public void callbackOptionImpliedVolatility( String symbol, String tickType, Double value ) { thunk(); }
+
+    //
+    // Index Future Premium -- not implemented
+    //
+
+    public void callbackMiscellaneous( String symbol, String tickType, Double price, boolean canAutoExecute ) { thunk(); }
+    public void callbackMiscellaneous( String symbol, String tickType, Integer size ) { thunk(); }
+
+    //
+    // Mark Price -- not implemented
+    //
+
+    //
+    // Auction -- not implemented
+    //
+
+    public void callbackRTVolume( String symbol, Double lastPrice, Integer lastSize,
+                                  Long lastTimeMS, Integer totalVolume, Double vwap, boolean isSingleTrade ) { thunk(); }
+
+    public void callbackShortable( String symbol, String tickType, Double value ) { thunk(); }
+
+    //
     // AnyWrapper interface definitions
     //
 
@@ -132,12 +214,22 @@ public abstract class Controller implements EWrapper
     //
     // EWrapper interface definitions
     //
-    public void tickPrice( int tickerId, int field, double price, int canAutoExecute ) { thunk(); }
-    public void tickSize( int tickerId, int field, int size ) { thunk(); }
+    //public void tickPrice( int tickerId, int field, double price, int canAutoExecute ) { thunk(); }
+    public void tickPriceCallback( String symbol, String field, Double price, boolean canAutoExecute ) { thunk(); }
+
+    //public void tickSize( int tickerId, int field, int size ) { thunk(); }
+    public void tickSizeCallback( String symbol, String tickType, Integer size ) { thunk(); }
+
     public void tickOptionComputation( int tickerId, int field, double impliedVol,
                                        double delta, double modelPrice, double pvDividend ) { thunk(); }
-    public void tickGeneric( int tickerId, int tickType, double value ) { thunk(); }
-    public void tickString( int tickerId, int tickType, String value ) { thunk(); }
+
+    //public void tickGeneric( int tickerId, int tickType, double value ) { thunk(); }
+    public void tickGenericCallback( String symbol, String tickType, Double value ) { thunk(); }
+    
+
+    //public void tickString( int tickerId, int tickType, String value ) { thunk(); }
+    public void tickStringCallback( String symbol, String tickType, String value ) { thunk(); }
+
     public void tickEFP( int tickerId, int tickType, double basisPoints,
                          String formattedBasisPoints, double impliedFuture, int holdDays,
                          String futureExpiry, double dividendImpact, double dividendsToExpiry ) { thunk(); }
@@ -163,8 +255,13 @@ public abstract class Controller implements EWrapper
     public void updateNewsBulletin( int msgId, int msgType, String message, String origExchange ) { thunk(); }
     public void managedAccounts( String accountsList ) { thunk(); }
     public void receiveFA( int faDataType, String xml ) { thunk(); }
-    public void historicalData( int reqId, String date, double open, double high, double low,
-                                double close, int volume, int count, double WAP, boolean hasGaps ) { thunk(); }
+
+    //public void historicalData( int reqId, String date, double open, double high, double low,
+    //                            double close, int volume, int count, double WAP, boolean hasGaps ) { thunk(); }
+    public void callbackHistoricalData( String symbol, Long startDate, Double open, Double high, Double low,
+                                        Double close, Integer volume, Integer count, Double WAP, boolean hasGaps ) { thunk(); }
+    public void callbackHistoricalDataFinished( String symbol ) { thunk(); }
+
     public void scannerParameters( String xml ) { thunk(); }
     public void scannerData( int reqId, int rank, ContractDetails contractDetails, String distance,
                              String benchmark, String projection, String legsStr ) { thunk(); }

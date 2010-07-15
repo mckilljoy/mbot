@@ -20,33 +20,48 @@ import java.util.Hashtable;
 import java.util.Collections;
 
 //
-// This is a controller for the entire system. It doesn't 
-// queue up and jobs itself, but contains subcontrollers
+// This controls the entire system. It doesn't 
+// queue up jobs itself, but contains controllers
 // that take care of different subtasks.
 //
 // It also contains the single TWS client and scheduler
 // instances
 //
-public class SystemController extends Controller
+public class SystemController
 {
+
+    //
+    // Jobs may be queued to this scheduler object
+    //
+    protected Scheduler scheduler;
+
+
+    //
+    // Tws subsystem
+    TwsSubsystem twsSubsystem;
 
     //
     // Which client Id do we start with
     //
-    static final int TWS_CLIENT_ID_DEFAULT = 0;
-
-    //int twsNextValidClientId = TWS_CLIENT_ID_DEFAULT;
-    Integer twsNextValidClientId = new Integer(TWS_CLIENT_ID_DEFAULT);
+    //static final int TWS_CLIENT_ID_DEFAULT = 0;
+    //Integer twsNextValidClientId = new Integer(TWS_CLIENT_ID_DEFAULT);
 
     //
-    // This maps the datafeeds to clientIds
+    // This maps the clientIds to datafeeds 
     //
-    Hashtable<Integer, Controller> clientIdToSubcontroller;
+    //Hashtable<Integer, Controller> clientIdToController;
+
 
     //
-    // Subcontrollers
+    // Cassandra subsystem
     //
-    LinkedList<SubController> subcontrollers;
+    CassandraSubsystem cassandraSubsystem;
+
+
+    //
+    // Controllers
+    //
+    LinkedList<Controller> controllers;
 
     public SystemController()
         throws SystemControllerException
@@ -54,8 +69,6 @@ public class SystemController extends Controller
 
         try
         {
-            controllerName = "System";
-            cassandraKeyspace = "Control";
 
             //
             // Spin up the scheduler.
@@ -64,110 +77,120 @@ public class SystemController extends Controller
             scheduler.startEvaluatorThread();
 
             //
-            // Connect to the cassandra server
+            // Create the Cassandra subsystem
             //
-            cassandraClient = new SimpleCassandraClient();
-            cassandraClient.connect( "localhost", 9160 );
-
-            if( cassandraClient.isConnected() )
-            {
-                System.out.println( controllerName + ": Connected to Cassandra Server '" +
-                                    cassandraClient.clusterName + "' on " +
-                                    cassandraClient.server + "/" + 
-                                    cassandraClient.port);
-            }
-            else
-            {
-                throw new Exception("Failed to connect to Cassandra Server");
-            }
+            cassandraSubsystem = new CassandraSubsystem( "localhost", 9160 );
+            System.out.println( "Connected to " + cassandraSubsystem.getServerInfo() );
 
             //
-            // Connect to TWS
+            // Create the Tws subsystem
             //
-            int clientId = getNextValidTwsClientId();
+            twsSubsystem = new TwsSubsystem( "localhost", 7496 );
 
-            twsClient = new EClientSocket( this );
-            twsClient.eConnect( "localhost", 7496, clientId );
-
-            if( twsClient.isConnected() )
-            {
-                System.out.println( controllerName + ": Connected to TWS server version " +
-                                    twsClient.serverVersion() + " at " +
-                                    twsClient.TwsConnectionTime());
-                //
-                // Wait for the nextValidId() to come in. Not critical.
-                //
-                try
-                {
-                    synchronized( twsNextValidClientId )
-                    {
-                        twsNextValidClientId.wait(10000);
-                    }
-                }
-                catch ( InterruptedException e )
-                {
-                    // nothing
-                }
-
-                System.out.println(controllerName + ": Using client id " + twsNextValidClientId );
-
-            }
-            else
-            {
-                throw new Exception("Failed to connect to TWS Server");
-            }
+            System.out.println( "Connected to " + twsSubsystem.getServerInfo() );
 
             //
             // Initialize sub controllers
             //
-            MktStkSubController mssc =
-                new MktStkSubController( this,
-                                         scheduler,
-                                         cassandraClient,
-                                         twsClient );
+            /*
+            MktStkController msc =
+                new MktStkController( scheduler,
+                                      cassandraSubsystem,
+                                      twsSubsystem );
 
-            HistoricalStkSubController hssc =
-                new HistoricalStkSubController( this,
-                                                scheduler,
-                                                cassandraClient,
-                                                twsClient );
+            msc.initFromControl();
+
+            System.out.println( "MktStkController initialized" );
+            */
+            HistoricalStkController hsc =
+                new HistoricalStkController( scheduler,
+                                             cassandraSubsystem,
+                                             twsSubsystem );
         
-            subcontrollers = new LinkedList<SubController>();
+            System.out.println( "HistoricalController initialized" );
 
-            subcontrollers.add( mssc );
-            subcontrollers.add( hssc );
+            //Long now = Controller.getTimestampMS() - (6*60*60*1000);
+            Long now = Controller.getTimestampMS(); ;            
+
+            System.out.println( "Adding to control: "+now+"-"+HistoricalStkController.TIME_1_YEAR_IN_MS);
+            hsc.addToControl( "ATVI", now-HistoricalStkController.TIME_1_YEAR_IN_MS );
+            System.out.println( "Pulling work" );
+            hsc.pullWorkFromControl();
+            System.out.println( "Done" );
 
             //
-            // Misc
+            // Hold onto these controllers
             //
-            clientIdToSubcontroller = new Hashtable<Integer, Controller>();
+            controllers = new LinkedList<Controller>();
+
+            //controllers.add( msc );
+            controllers.add( hsc );
 
         }
         catch( Exception e )
         {
+
+            //
+            // Let user know what failed
+            //
+            if( e instanceof SchedulerException )
+            {
+                System.out.println("Failed to create scheduler");
+            }
+            else if( e instanceof CassandraSubsystemException )
+            {
+                System.out.println("Failed to create Cassandra subsystem");
+            }
+            else if( e instanceof TwsSubsystemException )
+            {
+                System.out.println("Failed to create TWS subsystem");
+            }
+            else
+            {
+                System.out.println("Failed to create system");
+            }
+
+            //
+            // Clean up our mess
+            //
             if( scheduler != null )
             {
-                scheduler.endEvaluatorThread();
+                scheduler.shutdown();
             }
 
-            if( cassandraClient != null )
+            if( twsSubsystem != null )
             {
-                cassandraClient.disconnect();
+                twsSubsystem.shutdown();
             }
 
-            if( twsClient != null )
+            if( cassandraSubsystem != null )
             {
-                twsClient.eDisconnect();
+                cassandraSubsystem.shutdown();
             }
 
-            throw new SystemControllerException( e.getMessage() );
-
+            throw new SystemControllerException(e);
         }
+
+    }
+
+    //
+    // Shutdown the system
+    //
+    public void shutdown()
+    {
+
+        scheduler.shutdown();
+
+        cassandraSubsystem.shutdown();
+
+        twsSubsystem.shutdown();
+
     }
 
     //
     // Control who gets assigned with TWS clientId
     //
+    /*
     public synchronized int getNextValidTwsClientId()
     {
         return getNextValidTwsClientId( null );
@@ -189,6 +212,7 @@ public class SystemController extends Controller
         return clientId;
 
     }
+    */
 
     //
     // EWrapper interface
@@ -197,6 +221,7 @@ public class SystemController extends Controller
     //
     // These first ones are handled directly by the system controller
     //
+    /*
     public void error( Exception ex )
     {
         String msg = EWrapperMsgGenerator.error( ex );
@@ -290,5 +315,5 @@ public class SystemController extends Controller
         controller.tickString( tickerId, tickType, value );
 
     }
-
+    */
 }

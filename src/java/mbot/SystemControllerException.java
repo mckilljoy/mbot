@@ -6,4 +6,9 @@ public class SystemControllerException extends Exception
     {
         super(message);
     }
+
+    public SystemControllerException( Exception e )
+    {
+        super(e);
+    }
 }

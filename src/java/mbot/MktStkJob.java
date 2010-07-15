@@ -22,53 +22,64 @@ public class MktStkJob extends Job
     //
     // TWS EClientSock object to make IB API calls
     //
-    private EClientSocket twsClient = null;
+    private TwsSubsystem twsSubsystem;
+
+    //
+    // The controller that issued this job
+    //
+    private Controller controller;
 
     //
     // The client Id to use for this job
     //
-    private int twsClientId;
+    //private int twsClientId;
 
     //
     // Contract object
     //
-    private StkContract twsContract;
+    //private StkContract twsContract;
+    private String symbol;
 
     //
     // Generic ticks determine what kind of feed data we get.
     // The default ones (basically all ticks) should be good enough.
     //
-    final static String ALL_GENERIC_TICK_TAGS = "mdoff,100,101,104,105,106,107,165,221,225,233,236,258";
-    private String twsGenericTicks = ALL_GENERIC_TICK_TAGS;
+    //final static String ALL_GENERIC_TICK_TAGS = "mdoff,100,101,104,105,106,107,165,221,225,233,236,258";
+    //private String twsGenericTicks = ALL_GENERIC_TICK_TAGS;
 
     //
     // Whether or not to take just a snapshot of mkt data
     //
-    private boolean twsSnapshotMktData;
+    // private boolean twsSnapshotMktData;
+    //
+    // Always false for now
+    //
+    private boolean snapshot = false;
 
     //
     // Contstructor
     //
+    /*
     public MktStkJob( int jobType,
-                      EClientSocket twsClient,
+                      TwsSubsystem twsSubsystem,
                       int twsClientId )
     {
 
         this.jobType = jobType;
-        this.twsClient = twsClient;
+        this.twsSubsystem = twsSubsystem;
         this.twsClientId = twsClientId;
 
     }
 
     public MktStkJob( int jobType,
-                      EClientSocket twsClient,
+                      TwsSubsystem twsSubsystem,
                       int twsClientId,
                       StkContract twsContract,
                       boolean twsSnapshotMktData )
     {
 
         this.jobType = jobType;
-        this.twsClient = twsClient;
+        this.twsSubsystem = twsSubsystem;
         this.twsClientId = twsClientId;
         this.twsContract = twsContract;
         this.twsSnapshotMktData = twsSnapshotMktData;
@@ -80,6 +91,16 @@ public class MktStkJob extends Job
         {
             this.twsGenericTicks = "";
         }
+
+    }
+    */
+    public MktStkJob( int jobType, TwsSubsystem twsSubsystem, Controller controller, String symbol )
+    {
+
+        this.jobType = jobType;
+        this.twsSubsystem = twsSubsystem;
+        this.controller = controller;
+        this.symbol = symbol;
 
     }
 
@@ -112,7 +133,7 @@ public class MktStkJob extends Job
         switch( jobType )
         {
         case JOB_START_FEED:
-            cancelFeed();
+            stopFeed();
             break;
         default:
             // do nothing
@@ -129,10 +150,14 @@ public class MktStkJob extends Job
         //
         // Make the IB API call
         //
-        twsClient.reqMktData( twsClientId,
-                              twsContract,
-                              twsGenericTicks,
-                              twsSnapshotMktData);
+        try
+        {
+            twsSubsystem.requestMktStkData( controller, symbol );
+        }
+        catch( TwsSubsystemException e )
+        {
+            System.out.println("Exception requesting mkt stk data: " + e.getMessage() );
+        }
 
     }
 
@@ -145,22 +170,15 @@ public class MktStkJob extends Job
         //
         // Make the IB API call
         //
-        twsClient.cancelMktData( twsClientId );
+        try
+        {
+            twsSubsystem.cancelMktStkData( controller, symbol );
+        }
+        catch( TwsSubsystemException e )
+        {
+            System.out.println("Exception cancelling mkt stk data: " + e.getMessage() );
+        }
 
     }
-
-    //
-    // Cancel an outstanding datafeed request
-    //
-    private void cancelFeed()
-    {
-
-        //
-        // The same as stopping a feed
-        //
-        stopFeed();
-
-    }
-
 
 }
